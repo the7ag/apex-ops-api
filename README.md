@@ -11,13 +11,13 @@ and a scripted rollback.
 ```mermaid
 flowchart LR
   dev[Developer push / tag] --> ci[GitHub Actions]
-  subgraph CI pipeline
+  subgraph pipeline["CI pipeline"]
     ci --> lt[lint + tests + pip-audit]
     lt -->|pass only| bs[build image + Trivy scan + compose smoke test]
     bs -->|push / tag only| reg[(GHCR: versioned images)]
   end
   reg --> deploy[scripts/deploy.sh VERSION]
-  subgraph Local host - Docker Compose
+  subgraph host["Local host: Docker Compose"]
     deploy --> api[api container<br/>non-root, read-only FS<br/>/health /ready /metrics]
     api --> db[(Postgres 16<br/>named volume pgdata)]
   end
@@ -30,7 +30,7 @@ flowchart LR
 
 ## Quick start
 ```bash
-git clone <your-repo-url> apex-ops-api && cd apex-ops-api
+git clone https://github.com/the7ag/apex-ops-api.git && cd apex-ops-api
 cp .env.example .env               # then edit POSTGRES_PASSWORD
 docker compose up -d --build
 curl http://localhost:8000/health   # {"status":"ok"}
@@ -51,7 +51,7 @@ API docs (Swagger UI): http://localhost:8000/docs
 ## Running tests locally
 ```bash
 python -m venv .venv
-.venv/Scripts/activate        # Windows (Git Bash: source .venv/Scripts/activate)
+source .venv/Scripts/activate   # Windows Git Bash (Linux/macOS: source .venv/bin/activate)
 pip install -r requirements-dev.txt
 ruff check .
 pytest
