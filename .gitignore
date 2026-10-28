@@ -1,0 +1,13 @@
+# Secrets - never commit
+.env
+
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.db
+
+# Local deploy state written by scripts/deploy.sh
+.current_version
+.previous_version
