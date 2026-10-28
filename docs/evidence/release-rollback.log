@@ -1,0 +1,74 @@
+
+================ Clean start (database volume is kept) ================
+$ docker compose down
+ Container apex-ops-api-api-1 Stopping 
+ Container apex-ops-api-api-1 Stopped 
+ Container apex-ops-api-api-1 Removing 
+ Container apex-ops-api-api-1 Removed 
+ Container apex-ops-api-db-1 Stopping 
+ Container apex-ops-api-db-1 Stopped 
+ Container apex-ops-api-db-1 Removing 
+ Container apex-ops-api-db-1 Removed 
+ Network apex-ops-api_default Removing 
+ Network apex-ops-api_default Removed 
+
+================ Build versioned images ================
+ Image apex-ops-api:1.0.0 Building 
+ Image apex-ops-api:1.0.0 Built 
+[2026-10-28T22:33:07Z] built apex-ops-api:1.0.0
+ Image apex-ops-api:1.1.0 Building 
+ Image apex-ops-api:1.1.0 Built 
+[2026-10-28T22:33:08Z] built apex-ops-api:1.1.0
+
+================ Deploy 1.0.0 ================
+$ scripts/deploy.sh 1.0.0
+[2026-10-28T22:33:08Z] Deploying version=1.0.0 (currently running: none)
+ Network apex-ops-api_default Creating 
+ Network apex-ops-api_default Creating 
+ Network apex-ops-api_default Created 
+ Network apex-ops-api_default Created 
+ Container apex-ops-api-db-1 Creating 
+ Container apex-ops-api-db-1 Created 
+ Container apex-ops-api-db-1 Starting 
+ Container apex-ops-api-db-1 Started 
+ Container apex-ops-api-db-1 Running 
+ Container apex-ops-api-api-1 Creating 
+ Container apex-ops-api-api-1 Created 
+ Container apex-ops-api-db-1 Waiting 
+ Container apex-ops-api-db-1 Healthy 
+ Container apex-ops-api-api-1 Starting 
+ Container apex-ops-api-api-1 Started 
+[2026-10-28T22:33:17Z] SUCCESS: version=1.0.0 is ready
+{"version":"1.0.0"}
+$ curl -s -X POST localhost:8000/items -H content-type: application/json -d {"name":"created on 1.0.0"}
+{"name":"created on 1.0.0","status":"open","id":5}
+
+================ Release 1.1.0 ================
+$ scripts/deploy.sh 1.1.0
+[2026-10-28T22:33:17Z] Deploying version=1.1.0 (currently running: 1.0.0)
+ Container apex-ops-api-db-1 Running 
+ Container apex-ops-api-db-1 Running 
+ Container apex-ops-api-api-1 Recreate 
+ Container apex-ops-api-api-1 Recreated 
+ Container apex-ops-api-db-1 Waiting 
+ Container apex-ops-api-db-1 Healthy 
+ Container apex-ops-api-api-1 Starting 
+ Container apex-ops-api-api-1 Started 
+[2026-10-28T22:33:22Z] SUCCESS: version=1.1.0 is ready
+{"version":"1.1.0"}
+
+================ Roll back to the previous version ================
+$ scripts/rollback.sh
+[2026-10-28T22:33:22Z] Rolling back: 1.1.0 -> 1.0.0
+ Container apex-ops-api-db-1 Running 
+ Container apex-ops-api-api-1 Recreate 
+ Container apex-ops-api-api-1 Recreated 
+ Container apex-ops-api-db-1 Waiting 
+ Container apex-ops-api-db-1 Healthy 
+ Container apex-ops-api-api-1 Starting 
+ Container apex-ops-api-api-1 Started 
+[2026-10-28T22:33:26Z] SUCCESS: rolled back to version=1.0.0
+{"version":"1.0.0"}
+Data still present after rollback:
+$ curl -s localhost:8000/items
+[{"name":"persist-me","status":"open","id":1},{"name":"string","status":"open","id":2},{"name":"string","status":"open","id":3},{"name":"string","status":"open","id":4},{"name":"created on 1.0.0","status":"open","id":5}]

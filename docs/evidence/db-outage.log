@@ -1,0 +1,42 @@
+
+================ Baseline ================
+$ docker compose ps --format table {{.Service}}\t{{.Status}}
+SERVICE   STATUS
+api       Up 2 seconds (health: starting)
+db        Up 59 seconds (healthy)
+$ curl -s -w  HTTP %{http_code}\n localhost:8000/ready
+{"status":"ready","db":"up"} HTTP 200
+
+================ Inject failure: stop the database ================
+$ docker compose stop db
+ Container apex-ops-api-db-1 Stopping 
+ Container apex-ops-api-db-1 Stopped 
+
+================ Symptoms ================
+$ curl -s -w  HTTP %{http_code}\n localhost:8000/health
+{"status":"ok"} HTTP 200
+$ curl -s -w  HTTP %{http_code}\n localhost:8000/ready
+{"status":"not ready","db":"down"} HTTP 503
+$ curl -s -w  HTTP %{http_code}\n localhost:8000/items
+{"detail":"database unavailable"} HTTP 503
+
+================ Investigate ================
+$ docker compose ps -a --format table {{.Service}}\t{{.Status}}
+SERVICE   STATUS
+api       Up 11 seconds (healthy)
+db        Exited (0) 8 seconds ago
+$ docker compose logs --tail=4 api
+{"timestamp": "2026-10-28 22:34:13,820", "level": "WARNING", "logger": "apex", "message": "readiness check failed", "error": "(psycopg.OperationalError) failed to resolve host 'db': [Errno -2] Name or service not known\n(Background on this error at: https://sqlalche.me/e/21/e3q8)"}
+{"timestamp": "2026-10-28 22:34:13,820", "level": "INFO", "logger": "apex", "message": "request", "request_id": "f4d07d3277c94b138395f27250680238", "method": "GET", "path": "/ready", "status": 503, "duration_ms": 3972.33}
+{"timestamp": "2026-10-28 22:34:17,704", "level": "ERROR", "logger": "apex", "message": "database error", "path": "/items", "error": "(psycopg.OperationalError) failed to resolve host 'db': [Errno -2] Name or service not known\n(Background on this error at: https://sqlalche.me/e/21/e3q8)"}
+{"timestamp": "2026-10-28 22:34:17,704", "level": "INFO", "logger": "apex", "message": "request", "request_id": "8b58407ccefc46f089f04288975c0da7", "method": "GET", "path": "/items", "status": 503, "duration_ms": 3844.4}
+
+================ Fix: start the database and verify recovery ================
+$ docker compose start db
+ Container apex-ops-api-db-1 Starting 
+ Container apex-ops-api-db-1 Started 
+[2026-10-28T22:34:18Z] service ready again
+$ curl -s -w  HTTP %{http_code}\n localhost:8000/ready
+{"status":"ready","db":"up"} HTTP 200
+$ curl -s localhost:8000/items
+[{"name":"persist-me","status":"open","id":1},{"name":"string","status":"open","id":2},{"name":"string","status":"open","id":3},{"name":"string","status":"open","id":4},{"name":"created on 1.0.0","status":"open","id":5}]

@@ -1,0 +1,74 @@
+
+================ Make sure a good version (1.1.0) is running ================
+ Image apex-ops-api:1.1.0 Building 
+ Image apex-ops-api:1.1.0 Built 
+[2026-10-28T22:33:28Z] built apex-ops-api:1.1.0
+$ scripts/deploy.sh 1.1.0
+[2026-10-28T22:33:28Z] Deploying version=1.1.0 (currently running: 1.0.0)
+ Container apex-ops-api-db-1 Running 
+ Container apex-ops-api-db-1 Running 
+ Container apex-ops-api-api-1 Recreate 
+ Container apex-ops-api-api-1 Recreated 
+ Container apex-ops-api-db-1 Waiting 
+ Container apex-ops-api-db-1 Healthy 
+ Container apex-ops-api-api-1 Starting 
+ Container apex-ops-api-api-1 Started 
+[2026-10-28T22:33:32Z] SUCCESS: version=1.1.0 is ready
+{"version":"1.1.0"}
+
+================ Build a BROKEN 1.2.0 (bug: readiness query hits a table that does not exist) ================
+84:                conn.execute(text("SELECT 1 FROM table_that_does_not_exist"))
+[2026-10-28T22:33:40Z] built apex-ops-api:1.2.0 (broken on purpose)
+
+================ Deploy 1.2.0 - expected to FAIL and roll back automatically ================
+[2026-10-28T22:33:40Z] Deploying version=1.2.0 (currently running: 1.1.0)
+ Container apex-ops-api-db-1 Running 
+ Container apex-ops-api-db-1 Running 
+ Container apex-ops-api-api-1 Recreate 
+ Container apex-ops-api-api-1 Recreated 
+ Container apex-ops-api-db-1 Waiting 
+ Container apex-ops-api-db-1 Healthy 
+ Container apex-ops-api-api-1 Starting 
+ Container apex-ops-api-api-1 Started 
+[2026-10-28T22:34:03Z] FAILED: version=1.2.0 not ready within 20s
+api-1  | {"timestamp": "2026-10-28 22:33:44,225", "level": "INFO", "logger": "uvicorn.error", "message": "Started server process [1]", "color_message": "Started server process [\u001b[36m%d\u001b[0m]"}
+api-1  | {"timestamp": "2026-10-28 22:33:44,226", "level": "INFO", "logger": "uvicorn.error", "message": "Waiting for application startup."}
+api-1  | {"timestamp": "2026-10-28 22:33:44,261", "level": "INFO", "logger": "apex", "message": "startup complete", "version": "1.2.0"}
+api-1  | {"timestamp": "2026-10-28 22:33:44,262", "level": "INFO", "logger": "uvicorn.error", "message": "Application startup complete."}
+api-1  | {"timestamp": "2026-10-28 22:33:44,263", "level": "INFO", "logger": "uvicorn.error", "message": "Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)", "color_message": "Uvicorn running on \u001b[1m%s://%s:%d\u001b[0m (Press CTRL+C to quit)"}
+api-1  | {"timestamp": "2026-10-28 22:33:45,169", "level": "WARNING", "logger": "apex", "message": "readiness check failed", "error": "(psycopg.errors.UndefinedTable) relation \"table_that_does_not_exist\" does not exist\nLINE 1: SELECT 1 FROM table_that_does_not_exist\n                      ^\n[SQL: SELECT 1 FROM table_that_does_not_exist]\n(Background on this error at: https://sqlalche.me/e/21/f405)"}
+api-1  | {"timestamp": "2026-10-28 22:33:45,169", "level": "INFO", "logger": "apex", "message": "request", "request_id": "b6e5457c12504bf182859b9cac62d50e", "method": "GET", "path": "/ready", "status": 503, "duration_ms": 3.26}
+api-1  | {"timestamp": "2026-10-28 22:33:47,257", "level": "WARNING", "logger": "apex", "message": "readiness check failed", "error": "(psycopg.errors.UndefinedTable) relation \"table_that_does_not_exist\" does not exist\nLINE 1: SELECT 1 FROM table_that_does_not_exist\n                      ^\n[SQL: SELECT 1 FROM table_that_does_not_exist]\n(Background on this error at: https://sqlalche.me/e/21/f405)"}
+api-1  | {"timestamp": "2026-10-28 22:33:47,258", "level": "INFO", "logger": "apex", "message": "request", "request_id": "9ef38a7b28b949d28425d2f848e1b72c", "method": "GET", "path": "/ready", "status": 503, "duration_ms": 1.82}
+api-1  | {"timestamp": "2026-10-28 22:33:48,289", "level": "INFO", "logger": "apex", "message": "request", "request_id": "afa93947aa564d96b48880dd7afbca24", "method": "GET", "path": "/health", "status": 200, "duration_ms": 0.68}
+api-1  | {"timestamp": "2026-10-28 22:33:49,329", "level": "WARNING", "logger": "apex", "message": "readiness check failed", "error": "(psycopg.errors.UndefinedTable) relation \"table_that_does_not_exist\" does not exist\nLINE 1: SELECT 1 FROM table_that_does_not_exist\n                      ^\n[SQL: SELECT 1 FROM table_that_does_not_exist]\n(Background on this error at: https://sqlalche.me/e/21/f405)"}
+api-1  | {"timestamp": "2026-10-28 22:33:49,329", "level": "INFO", "logger": "apex", "message": "request", "request_id": "727a67ce7eb14e8d8856472e67659a0e", "method": "GET", "path": "/ready", "status": 503, "duration_ms": 1.71}
+api-1  | {"timestamp": "2026-10-28 22:33:51,406", "level": "WARNING", "logger": "apex", "message": "readiness check failed", "error": "(psycopg.errors.UndefinedTable) relation \"table_that_does_not_exist\" does not exist\nLINE 1: SELECT 1 FROM table_that_does_not_exist\n                      ^\n[SQL: SELECT 1 FROM table_that_does_not_exist]\n(Background on this error at: https://sqlalche.me/e/21/f405)"}
+api-1  | {"timestamp": "2026-10-28 22:33:51,407", "level": "INFO", "logger": "apex", "message": "request", "request_id": "33764e56c84d48db9b4c3427b4606025", "method": "GET", "path": "/ready", "status": 503, "duration_ms": 2.98}
+api-1  | {"timestamp": "2026-10-28 22:33:53,490", "level": "WARNING", "logger": "apex", "message": "readiness check failed", "error": "(psycopg.errors.UndefinedTable) relation \"table_that_does_not_exist\" does not exist\nLINE 1: SELECT 1 FROM table_that_does_not_exist\n                      ^\n[SQL: SELECT 1 FROM table_that_does_not_exist]\n(Background on this error at: https://sqlalche.me/e/21/f405)"}
+api-1  | {"timestamp": "2026-10-28 22:33:53,490", "level": "INFO", "logger": "apex", "message": "request", "request_id": "e0ecec4fbd2445f3b4a442f8bcc30f17", "method": "GET", "path": "/ready", "status": 503, "duration_ms": 1.81}
+api-1  | {"timestamp": "2026-10-28 22:33:55,577", "level": "WARNING", "logger": "apex", "message": "readiness check failed", "error": "(psycopg.errors.UndefinedTable) relation \"table_that_does_not_exist\" does not exist\nLINE 1: SELECT 1 FROM table_that_does_not_exist\n                      ^\n[SQL: SELECT 1 FROM table_that_does_not_exist]\n(Background on this error at: https://sqlalche.me/e/21/f405)"}
+api-1  | {"timestamp": "2026-10-28 22:33:55,577", "level": "INFO", "logger": "apex", "message": "request", "request_id": "01e0cc9e9ca84e64817b44d62cbbf154", "method": "GET", "path": "/ready", "status": 503, "duration_ms": 1.75}
+api-1  | {"timestamp": "2026-10-28 22:33:57,647", "level": "WARNING", "logger": "apex", "message": "readiness check failed", "error": "(psycopg.errors.UndefinedTable) relation \"table_that_does_not_exist\" does not exist\nLINE 1: SELECT 1 FROM table_that_does_not_exist\n                      ^\n[SQL: SELECT 1 FROM table_that_does_not_exist]\n(Background on this error at: https://sqlalche.me/e/21/f405)"}
+api-1  | {"timestamp": "2026-10-28 22:33:57,647", "level": "INFO", "logger": "apex", "message": "request", "request_id": "92e5615581444bfc8a5ceb1b7aef8eea", "method": "GET", "path": "/ready", "status": 503, "duration_ms": 1.51}
+api-1  | {"timestamp": "2026-10-28 22:33:59,751", "level": "WARNING", "logger": "apex", "message": "readiness check failed", "error": "(psycopg.errors.UndefinedTable) relation \"table_that_does_not_exist\" does not exist\nLINE 1: SELECT 1 FROM table_that_does_not_exist\n                      ^\n[SQL: SELECT 1 FROM table_that_does_not_exist]\n(Background on this error at: https://sqlalche.me/e/21/f405)"}
+api-1  | {"timestamp": "2026-10-28 22:33:59,751", "level": "INFO", "logger": "apex", "message": "request", "request_id": "fba36ea2d35e4db7ad6fb8d409258f06", "method": "GET", "path": "/ready", "status": 503, "duration_ms": 3.44}
+api-1  | {"timestamp": "2026-10-28 22:34:01,835", "level": "WARNING", "logger": "apex", "message": "readiness check failed", "error": "(psycopg.errors.UndefinedTable) relation \"table_that_does_not_exist\" does not exist\nLINE 1: SELECT 1 FROM table_that_does_not_exist\n                      ^\n[SQL: SELECT 1 FROM table_that_does_not_exist]\n(Background on this error at: https://sqlalche.me/e/21/f405)"}
+api-1  | {"timestamp": "2026-10-28 22:34:01,835", "level": "INFO", "logger": "apex", "message": "request", "request_id": "52c4862ab61540c5b340fe6f46e39ccc", "method": "GET", "path": "/ready", "status": 503, "duration_ms": 1.85}
+api-1  | {"timestamp": "2026-10-28 22:34:03,605", "level": "INFO", "logger": "apex", "message": "request", "request_id": "50143781090145eaa67eca47cd67950c", "method": "GET", "path": "/health", "status": 200, "duration_ms": 0.72}
+[2026-10-28T22:34:04Z] AUTO-ROLLBACK to version=1.1.0
+ Container apex-ops-api-db-1 Running 
+ Container apex-ops-api-api-1 Recreate 
+ Container apex-ops-api-api-1 Recreated 
+ Container apex-ops-api-db-1 Waiting 
+ Container apex-ops-api-db-1 Healthy 
+ Container apex-ops-api-api-1 Starting 
+ Container apex-ops-api-api-1 Started 
+[2026-10-28T22:34:08Z] Rolled back: version=1.1.0 is ready
+deploy.sh exited non-zero as expected
+
+================ Verify service is healthy on the previous version ================
+$ curl -s localhost:8000/version
+{"version":"1.1.0"}
+$ curl -s localhost:8000/ready
+{"status":"ready","db":"up"}
